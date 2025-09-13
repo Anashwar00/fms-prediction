@@ -1,37 +1,62 @@
-from flask import Flask,request,jsonify,render_template
+from fastapi import FastAPI, Form, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 import numpy as np
-import pandas as pd
-from sklearn.preprocessing import StandardScaler
 import pickle
+from sklearn.preprocessing import StandardScaler
 
-application=Flask(__name__)
-app=application
+# Create FastAPI app
+app = FastAPI()
 
-ridge_model=pickle.load(open('models/ridge1.pkl','rb'))
-standard_scalar=pickle.load(open('models/scalar1.pkl','rb'))
+# Load ML model and scaler
+ridge_model = pickle.load(open("models/ridge1.pkl", "rb"))
+standard_scalar = pickle.load(open("models/scalar1.pkl", "rb"))
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+# Setup templates (like render_template in Flask)
+templates = Jinja2Templates(directory="templates")
 
-@app.route('/predict_data',methods=['GET','POST'])
-def predict_data():
-    if request.method=='POST':
-        Temperature=float(request.form.get('Temperature'))
-        RH = float(request.form.get('RH'))
-        Ws = float(request.form.get('Ws'))
-        Rain = float(request.form.get('Rain'))
-        FFMC = float(request.form.get('FFMC'))
-        DMC = float(request.form.get('DMC'))
-        ISI = float(request.form.get('ISI'))
-        Classes = float(request.form.get('Classes'))
-        Region = float(request.form.get('Region'))
+# Root route (index page)
+@app.get("/", response_class=HTMLResponse)
+async def index(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
-        new_data_scaled=standard_scalar.transform([[Temperature,RH,Ws,Rain,FFMC,DMC,ISI,Classes,Region]])
-        result=ridge_model.predict(new_data_scaled)
-        return render_template('home.html',results=result[0])
+# Predict route
+@app.post("/predict_data", response_class=HTMLResponse)
+async def predict_data(
+    request: Request,
+    Temperature: float = Form(...),
+    RH: float = Form(...),
+    Ws: float = Form(...),
+    Rain: float = Form(...),
+    FFMC: float = Form(...),
+    DMC: float = Form(...),
+    ISI: float = Form(...),
+    Classes: float = Form(...),
+    Region: float = Form(...)
+):
+    # Scale input data
+    new_data_scaled = StandardScaler.transform(
+        [[Temperature, RH, Ws, Rain, FFMC, DMC, ISI, Classes, Region]]
+    )
+    
+    # Predict
+    result = ridge_model.predict(new_data_scaled)
+    
+    # Render HTML template with result
+    return templates.TemplateResponse("home.html", {"request": request, "results": result[0]})
 
-    else:
-        return render_template('home.html')
-if __name__ == "__main__":
-    app.run(debug=True)
+# Optional: GET request to show form without prediction
+@app.get("/predict_data", response_class=HTMLResponse)
+async def show_form(request: Request):
+    return templates.TemplateResponse("home.html", {"request": request})
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
