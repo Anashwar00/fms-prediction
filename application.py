@@ -12,19 +12,15 @@ app = FastAPI()
 ridge_model = pickle.load(open("models/ridge1.pkl", "rb"))
 standard_scalar = pickle.load(open("models/scalar1.pkl", "rb"))
 
-# Setup templates (like render_template in Flask)
-templates = Jinja2Templates(directory="templates")
+templates=Jinja2Templates("templates")
 
-# Root route (index page)
-@app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
-
-# Predict route
-@app.post("/predict_data", response_class=HTMLResponse)
-async def predict_data(
-    request: Request,
-    Temperature: float = Form(...),
+@app.get("/")
+def index(request:Request):
+    return templates.TemplateResponse("index.html",{'request':request})
+@app.post("/predict_data")
+def predict_data(
+    request:Request,
+    Temperature:float=Form(...),
     RH: float = Form(...),
     Ws: float = Form(...),
     Rain: float = Form(...),
@@ -32,23 +28,53 @@ async def predict_data(
     DMC: float = Form(...),
     ISI: float = Form(...),
     Classes: float = Form(...),
-    Region: float = Form(...)
-):
-    # Scale input data
-    new_data_scaled = StandardScaler.transform(
-        [[Temperature, RH, Ws, Rain, FFMC, DMC, ISI, Classes, Region]]
-    )
-    
-    # Predict
-    result = ridge_model.predict(new_data_scaled)
-    
-    # Render HTML template with result
-    return templates.TemplateResponse("home.html", {"request": request, "results": result[0]})
+    Region: float = Form(...)):
+    new_data_scaled=standard_scalar.transform([[Temperature, RH, Ws, Rain, FFMC, DMC, ISI, Classes, Region]])
+    response=ridge_model.predict(new_data_scaled)
+    return templates.TemplateResponse("home.html",{'request':request,'results':response[0]})
 
-# Optional: GET request to show form without prediction
-@app.get("/predict_data", response_class=HTMLResponse)
-async def show_form(request: Request):
-    return templates.TemplateResponse("home.html", {"request": request})
+    
+@app.get("/predict_data")
+def show_form(request:Request):
+    return templates.TemplateResponse("home.html",{'request':request})
+    
+# Setup templates (like render_template in Flask)
+# templates = Jinja2Templates(directory="templates")
+
+# # Root route (index page)
+# @app.get("/")
+# async def index(request: Request):
+#     return templates.TemplateResponse("index.html", {"request": request})
+
+# # Predict route
+# @app.post("/predict_data")
+# async def predict_data(
+#     request: Request,
+#     Temperature: float = Form(...),
+#     RH: float = Form(...),
+#     Ws: float = Form(...),
+#     Rain: float = Form(...),
+#     FFMC: float = Form(...),
+#     DMC: float = Form(...),
+#     ISI: float = Form(...),
+#     Classes: float = Form(...),
+#     Region: float = Form(...)
+# ):
+#     # Scale input data
+#     new_data_scaled = standard_scaler.transform(
+#         [[Temperature, RH, Ws, Rain, FFMC, DMC, ISI, Classes, Region]]
+#     )
+    
+#     # Predict
+#     result = ridge_model.predict(new_data_scaled)
+    
+#     # Render HTML template with result
+#     return templates.TemplateResponse("home.html", {"request": request, "results": result[0]})
+
+# # Optional: GET request to show form without prediction
+# @app.get("/predict_data")
+# async def show_form(request: Request):
+#     return templates.TemplateResponse("home.html", {"request": request})
 
     
     
